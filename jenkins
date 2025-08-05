@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    environment {
+        SONARQUBE_SERVER = 'SonarQubeServer'  // Use the name configured in Jenkins > Manage Jenkins > SonarQube
+        IMAGE_NAME = 'my-devops-image'
+        PATH = "/opt/sonar-scanner/bin:$PATH"  // Ensure sonar-scanner is installed and path is correct
+    }
+
+    stages {
+        stage('Pull Code From GitHub') {
+            steps {
+                git 'https://github.com/yourusername/your-repo-name.git'  // 🔁 Replace with your actual repo URL
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                    sh 'sonar-scanner -X'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${IMAGE_NAME} .'
+            }
+        }
+
+        stage('Image Scan with Trivy') {
+            steps {
+                sh 'trivy image ${IMAGE_NAME} || true'  // Use `|| true` to prevent pipeline failure on Trivy warnings
+            }
+        }
+
+        // Add more stages like Push to ECR or Deploy to K8s as needed
+    }
+}
